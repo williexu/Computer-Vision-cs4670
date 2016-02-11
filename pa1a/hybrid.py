@@ -81,10 +81,21 @@ def gaussian_blur_kernel_2d(sigma, width, height):
     '''
     # TODO-BLOCK-BEGIN
     ret = np.empty([height, width])
+    kernelSum = 0.0
     for y in xrange(height):
         for x in xrange(width):
             ret[y,x] = 1./2/np.pi/sigma**2 * np.exp(-((y-(height/2))**2 
                 + (x-(width/2))**2)/2/sigma**2)
+            kernelSum += ret[y,x]
+    # ratio = 1.0/np.sum(ret)
+    # print np.sum(ret)
+    ratio = 1.0/kernelSum
+    print kernelSum
+    print ratio
+    for y in xrange(height):
+    	for x in xrange(width):
+    		ret[y,x] = ret[y,x] * ratio
+    # print ret
     return ret
     # TODO-BLOCK-END
 
