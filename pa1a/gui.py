@@ -101,9 +101,11 @@ class ImageAlignmentFrame(uiutils.BaseFrame):
                 self.load_first(conf['first_image'])
                 self.load_second(conf['second_image'])
                 for c in conf['first_image_points']:
-                    self.left_image_widget.push_click(int(c[0]), int(c[1]))
+                    self.left_image_widget.push_click_image_coordinates(
+                            int(c[0]), int(c[1]))
                 for c in conf['second_image_points']:
-                    self.right_image_widget.push_click(int(c[0]), int(c[1]))
+                    self.right_image_widget.push_click_image_coordinates(
+                            int(c[0]), int(c[1]))
                 self.set_status('Loaded from template ' + filename)
 
     def save_corr(self):
@@ -116,10 +118,11 @@ class ImageAlignmentFrame(uiutils.BaseFrame):
             conf['second_image'] = self.right_image_name
             conf[
                 'first_image_points'
-            ] = self.left_image_widget.get_clicked_points()
+            ] = self.left_image_widget.get_clicked_points_in_image_coordinates()
             conf[
                 'second_image_points'
-            ] = self.right_image_widget.get_clicked_points()
+            ] = self.right_image_widget.get_clicked_points_in_image_coordinates(
+                    )
             with open(filename, 'w') as outfile:
                 json.dump(conf, outfile, indent=2)
                 self.set_status('Saved to template ' + filename)
