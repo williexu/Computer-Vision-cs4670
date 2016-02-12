@@ -80,21 +80,22 @@ def gaussian_blur_kernel_2d(sigma, width, height):
         with an image results in a Gaussian-blurred image.
     '''
     # TODO-BLOCK-BEGIN
-    ret = np.empty([height, width])
+    ret = np.empty([width, height])
     kernelSum = 0.0
-    for y in xrange(height):
-        for x in xrange(width):
-            ret[y,x] = 1./2/np.pi/sigma**2 * np.exp(-((y-(height/2))**2 
-                + (x-(width/2))**2)/2/sigma**2)
-            kernelSum += ret[y,x]
+    for y in xrange(height/2 * -1, height/2 + 1):
+        for x in xrange(width/2 * -1, width/2 + 1):
+            my = y + height/2
+            mx = x + width/2
+            ret[mx,my] = np.exp(-float(x **2 + y **2) / (2.*sigma**2))/(2.*np.pi*sigma**2)
+            kernelSum += ret[mx,my]
     # ratio = 1.0/np.sum(ret)
     # print np.sum(ret)
     ratio = 1.0/kernelSum
-    print kernelSum
-    print ratio
+    # print kernelSum
+    # print ratio
     for y in xrange(height):
-    	for x in xrange(width):
-    		ret[y,x] = ret[y,x] * ratio
+        for x in xrange(width):
+            ret[x,y] = ret[x,y] * ratio
     # print ret
     return ret
     # TODO-BLOCK-END
