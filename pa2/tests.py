@@ -24,6 +24,14 @@ def unpickle_cv2(arr):
 
 # Functions for testing elementwise correctness
 def compare_array(arr1, arr2):
+    # height, width =  arr1.shape
+    # for x in xrange(width):
+    #     for y in xrange(height):
+    #         if (arr1[y,x] - arr2[y,x] > 1e-5 or arr1[y,x] - arr2[y,x] < -1e-5):
+    #             print x,y,arr1[y,x], arr2[y,x]
+    # print arr1
+    # print arr2
+    
     return np.allclose(arr1,arr2,rtol=1e-3,atol=1e-5)
 
 def compare_cv2_points(pnt1, pnt2):
@@ -105,6 +113,8 @@ loaded = np.load('resources/arrays.npz')
 d = unpickle_cv2(loaded['d_proc'])
 
 try_this(1, HKD.computeHarrisValues, [loaded['a'],loaded['b']], compare_array, grayImage)
+
+
 
 # patch HKD so future tests won't fail because the last test failed
 class HKD2(features.HarrisKeypointDetector):

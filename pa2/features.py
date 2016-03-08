@@ -15,6 +15,25 @@ def inbounds(shape, indices):
             return False
     return True
 
+def getGaussian_kernel():
+    gaussian_kernel = np.empty([5, 5])
+    kernelSum = 0.0
+
+    for y in xrange(-2, 3):
+        for x in xrange(-2, 3):
+            my = y + 2
+            mx = x + 2
+            gaussian_kernel[mx,my] = np.exp(-float(x **2 + y **2) / (2.*0.5**2))/(2.*np.pi*0.5**2)
+            kernelSum += gaussian_kernel[mx,my]
+
+    ratio = 1.0/kernelSum
+
+    for y in xrange(5):
+        for x in xrange(5):
+            gaussian_kernel[x,y] = gaussian_kernel[x,y] * ratio
+
+    return gaussian_kernel
+
 
 ## Keypoint detectors ##########################################################
 
@@ -99,7 +118,39 @@ class HarrisKeypointDetector(KeypointDetector):
         # for direction on how to do this. Also compute an orientation
         # for each pixel and store it in 'orientationImage.'
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+
+        Ix = scipy.ndimage.sobel(srcImage, 1)
+        Iy = scipy.ndimage.sobel(srcImage, 0)
+
+        gaussian_kernel = getGaussian_kernel()
+
+        for x in xrange(width):
+            for y in xrange(height):
+                h00, h01, h10, h11 = 0, 0, 0, 0
+                for m in xrange(-2, 3):
+                    for n in xrange(-2, 3):
+                        mm = m + 2
+                        nn = n + 2
+                        yn = y + n
+                        xm = x + m
+                        if (yn < 0):
+                            yn = -yn
+                        if (xm < 0):
+                            xm = -xm
+                        if (yn > height - 1):
+                            yn = (height - 1) - (yn - (height - 1))
+                        if (xm > width - 1):
+                            xm = (width - 1) - (xm - (width - 1))
+
+                        h00 += gaussian_kernel[mm, nn] * Ix[yn, xm] **2
+                        h01 += gaussian_kernel[mm, nn] * Ix[yn, xm] * Iy[yn, xm]
+                        h10 = h01
+                        h11 += gaussian_kernel[mm, nn] * Iy[yn, xm] **2
+
+                r = (h00 * h11 - h01 * h10) - 0.1 * (h00 + h11) **2
+                harrisImage[y][x] = r
+                orientationImage[y][x] = np.arctan2(Iy[y, x], Ix[y, x]) * 180. / np.pi
+
         # TODO-BLOCK-END
 
         return harrisImage, orientationImage
@@ -119,7 +170,18 @@ class HarrisKeypointDetector(KeypointDetector):
 
         # TODO 2: Compute the local maxima image
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+        height, width = harrisImage.shape[:2]
+
+        for x in xrange(width):
+            for y in xrange(height):
+                destImage[y, x] = True
+                for m in xrange(-3, 4):
+                    for n in xrange(-3, 4):
+                        try:
+                            if (harrisImage[y, x] < harrisImage[y + n, x + m]):
+                                destImage[y, x] = False
+                        except:
+                            pass
         # TODO-BLOCK-END
 
         return destImage
@@ -167,11 +229,13 @@ class HarrisKeypointDetector(KeypointDetector):
                 # f.angle to the orientation in degrees and f.response to
                 # the Harris score
                 # TODO-BLOCK-BEGIN
-                raise Exception("TODO in features.py not implemented")
+                f.size = 10
+                f.pt = x, y
+                f.angle = orientationImage[y, x]
+                f.response = harrisImage[y, x]
                 # TODO-BLOCK-END
 
                 features.append(f)
-
         return features
 
 
@@ -230,7 +294,16 @@ class SimpleFeatureDescriptor(FeatureDescriptor):
             # sampled centered on the feature point. Store the descriptor
             # as a row-major vector. Treat pixels outside the image as zero.
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO in features.py not implemented")
+
+            height, width = image.shape[:2]
+
+            for m in xrange(-2, 3):
+                for n in xrange(-2, 3):
+                    try:
+                        desc[i, 5 * (n + 2) + (m + 2)] = grayImage[y + n, x + m]
+                    except:
+                        desc[i, 5 * (n + 2) + (m + 2)] = 0
+
             # TODO-BLOCK-END
 
         return desc
@@ -266,7 +339,59 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
             transMx = np.zeros((2, 3))
 
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO in features.py not implemented")
+
+            # transMt1 = np.zeros((3, 3))
+            x, y = f.pt
+            # transMt1[0, 2] = -x
+            # transMt1[1, 2] = -y
+            # transMt1[0, 0] = 1
+            # transMt1[1, 1] = 1
+            # transMt1[2, 2] = 1
+            transMt1 = transformations.get_trans_mx(np.array([-x, -y, 0]))
+
+            # transMr = np.zeros((3, 3))
+            angle = f.angle / 180. * np.pi
+            # transMr[0, 0] = np.cos(angle)
+            # transMr[0, 1] = -np.sin(angle)
+            # transMr[1, 0] = np.sin(angle)
+            # transMr[1, 1] = np.cos(angle)
+            # transMr[2, 2] = 1
+            transMr = transformations.get_rot_mx(0,0,-angle)
+
+            # if angle != 0:
+            #     print "transMt1"
+            #     print transMt1
+            #     print "transMr"
+            #     print transMr
+            #     print np.dot(transMt1, transMr)
+
+            # transMs = np.zeros((3, 3))
+            # transMs[0, 0] = 1./5
+            # transMs[1, 1] = 1./5
+            # transMs[2, 2] = 1
+            # if angle != 0:
+            #     print np.dot(np.dot(transMt1, transMr), transMs)
+            transMs = transformations.get_scale_mx(1./5, 1./5, 1)
+
+            # transMt2 = np.zeros((3, 3))
+            # transMt2[0, 2] = 4
+            # transMt2[1, 2] = 4
+            # transMt2[0, 0] = 1
+            # transMt2[1, 1] = 1
+            # transMt2[2, 2] = 1
+            transMt2 = transformations.get_trans_mx(np.array([4, 4, 0]))
+
+            transMx1 = np.dot(transMr, transMt1)
+            transMx1 = np.dot(transMs, transMx1)
+            transMx1 = np.dot(transMt2, transMx1)
+            # if transMx1[0, 0] != 0 and transMx1[0, 0] != 0.2:
+            #     print transMx1
+            transMx[:,:2] = transMx1[:2, :2]
+            transMx[:,2] = transMx1[:2, 3]
+            
+            # if transMx[0, 0] != 0 and transMx1[0, 0] != 0.2:
+            #     print transMx
+
             # TODO-BLOCK-END
 
             # Call the warp affine function to do the mapping
@@ -278,9 +403,25 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
             # variance. If the variance is zero then set the descriptor
             # vector to zero. Lastly, write the vector to desc.
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO in features.py not implemented")
-            # TODO-BLOCK-END
+            # if destImage[0, 0] != 0:
+            #     print destImage
+            mean = destImage.mean()
+            destImage = destImage - mean
+            std = destImage.std()
+            # if mean != 0:
+            #     print mean
+            #     print "mean above std down"
+            #     print std
+            if std > 1e-5:
+                destImage = destImage / std
+            else:
+                destImage = np.zeros((8, 8), dtype=np.float32)
 
+            for m in xrange(8):
+                for n in xrange(8):
+                    desc[i, 8 * n + m] = destImage[n, m]
+
+            # TODO-BLOCK-END
         return desc
 
 
@@ -404,7 +545,29 @@ class SSDFeatureMatcher(FeatureMatcher):
         # Note: multiple features from the first image may match the same
         # feature in the second image.
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+        numKeyPoints1 = desc1.shape[0]
+        numKeyPoints2 = desc2.shape[0]
+        matches = []
+
+        for x in xrange(numKeyPoints1):
+            distance = -1
+            y_ind = -1
+            for y in xrange(numKeyPoints2):
+                sumSquare = 0
+                for m in xrange(desc1.shape[1]):
+                    sumSquare += (desc1[x][m] - desc2[y][m]) **2
+                sumSquare = np.sqrt(sumSquare)
+                if distance < 0 or (sumSquare < distance and distance >=0):
+                    distance = sumSquare
+                    y_ind = y
+            cur = cv2.DMatch()
+            cur.queryIdx = x
+            cur.trainIdx = y_ind
+            cur.distance = distance
+            print cur.queryIdx
+            print cur.trainIdx
+            print cur.distance
+            matches.append(cur)
         # TODO-BLOCK-END
 
         return matches
@@ -446,7 +609,30 @@ class RatioFeatureMatcher(FeatureMatcher):
         # feature in the second image.
         # You don't need to threshold matches in this function
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO in features.py not implemented")
+        numKeyPoints1 = desc1.shape[0]
+        numKeyPoints2 = desc2.shape[0]
+        matches = []
+
+        for x in xrange(numKeyPoints1):
+            distance1 = -1
+            distance2 = -1
+            y_ind = -1
+            for y in xrange(numKeyPoints2):
+                sumSquare = 0
+                for m in xrange(desc1.shape[1]):
+                    sumSquare += (desc1[x][m] - desc2[y][m]) **2
+                sumSquare = np.sqrt(sumSquare)
+                if distance1 < 0 or (sumSquare < distance1 and distance1 >=0):
+                    distance2 = distance1
+                    distance1 = sumSquare
+                    y_ind = y
+                elif distance2 < 0 or (sumSquare < distance2 and distance2 >=0):
+                    distance2 = sumSquare
+            cur = cv2.DMatch()
+            cur.queryIdx = x
+            cur.trainIdx = y_ind
+            cur.distance = distance1 /distance2
+            matches.append(cur)
         # TODO-BLOCK-END
 
         return matches
