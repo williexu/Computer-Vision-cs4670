@@ -340,57 +340,22 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
 
             # TODO-BLOCK-BEGIN
 
-            # transMt1 = np.zeros((3, 3))
             x, y = f.pt
-            # transMt1[0, 2] = -x
-            # transMt1[1, 2] = -y
-            # transMt1[0, 0] = 1
-            # transMt1[1, 1] = 1
-            # transMt1[2, 2] = 1
             transMt1 = transformations.get_trans_mx(np.array([-x, -y, 0]))
 
-            # transMr = np.zeros((3, 3))
             angle = f.angle / 180. * np.pi
-            # transMr[0, 0] = np.cos(angle)
-            # transMr[0, 1] = -np.sin(angle)
-            # transMr[1, 0] = np.sin(angle)
-            # transMr[1, 1] = np.cos(angle)
-            # transMr[2, 2] = 1
             transMr = transformations.get_rot_mx(0,0,-angle)
 
-            # if angle != 0:
-            #     print "transMt1"
-            #     print transMt1
-            #     print "transMr"
-            #     print transMr
-            #     print np.dot(transMt1, transMr)
-
-            # transMs = np.zeros((3, 3))
-            # transMs[0, 0] = 1./5
-            # transMs[1, 1] = 1./5
-            # transMs[2, 2] = 1
-            # if angle != 0:
-            #     print np.dot(np.dot(transMt1, transMr), transMs)
             transMs = transformations.get_scale_mx(1./5, 1./5, 1)
 
-            # transMt2 = np.zeros((3, 3))
-            # transMt2[0, 2] = 4
-            # transMt2[1, 2] = 4
-            # transMt2[0, 0] = 1
-            # transMt2[1, 1] = 1
-            # transMt2[2, 2] = 1
             transMt2 = transformations.get_trans_mx(np.array([4, 4, 0]))
 
             transMx1 = np.dot(transMr, transMt1)
             transMx1 = np.dot(transMs, transMx1)
             transMx1 = np.dot(transMt2, transMx1)
-            # if transMx1[0, 0] != 0 and transMx1[0, 0] != 0.2:
-            #     print transMx1
+
             transMx[:,:2] = transMx1[:2, :2]
             transMx[:,2] = transMx1[:2, 3]
-            
-            # if transMx[0, 0] != 0 and transMx1[0, 0] != 0.2:
-            #     print transMx
 
             # TODO-BLOCK-END
 
@@ -564,9 +529,6 @@ class SSDFeatureMatcher(FeatureMatcher):
             cur.queryIdx = x
             cur.trainIdx = y_ind
             cur.distance = distance
-            print cur.queryIdx
-            print cur.trainIdx
-            print cur.distance
             matches.append(cur)
         # TODO-BLOCK-END
 
