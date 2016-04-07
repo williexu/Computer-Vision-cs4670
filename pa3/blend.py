@@ -29,7 +29,23 @@ def imageBoundingBox(img, M):
     """
     #TODO 8
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in blend.py not implemented")
+    
+    img_shape = img.shape
+    vec_1 = numpy.array((0, 0, 1))
+    vec_2 = numpy.array((img_shape[0], 0, 1))
+    vec_3 = numpy.array((0, img_shape[1], 1))
+    vec_4 = numpy.array((img_shape[0], img_shape[1], 1))
+
+    vec_1trans = M.dot(vec_1)
+    vec_2trans = M.dot(vec_2)
+    vec_3trans = M.dot(vec_3)
+    vec_4trans = M.dot(vec_4)
+
+    minX = min(vec_1trans[0], vec_2trans[0], vec_3trans[0], vec_4trans[0])
+    minY = min(vec_1trans[1], vec_2trans[1], vec_3trans[1], vec_4trans[1])
+    maxX = max(vec_1trans[0], vec_2trans[0], vec_3trans[0], vec_4trans[0])
+    maxY = max(vec_1trans[1], vec_2trans[1], vec_3trans[1], vec_4trans[1])
+
     #TODO-BLOCK-END
     return int(minX), int(minY), int(maxX), int(maxY)
 
@@ -49,7 +65,25 @@ def accumulateBlend(img, acc, M, blendWidth):
     # BEGIN TODO 10
     # Fill in this routine
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in blend.py not implemented")
+    
+    acc_shape = acc.shape
+    img_shape = img.shape
+    for x in xrange(acc_shape[0]):
+        for y in xrange(acc_shape[1]):
+            vec = numpy.array(((float)x, (float)y, 1.0))
+            M_inverse = np.linalg.inv(M)
+            vec_inverse = M_inverse.dot(vec)
+            vec_inverse /= vec_inverse[2]
+            if !(vec_inverse[0] < 0 || vec_inverse[0] > img_shape[0] || vec_inverse[1] < 0 || vec_inverse[1] > img_shape[1]):
+                vec_src = numpy.array((round(vec_inverse[0]), round(vec_inverse[1]))) #change it
+                if img[vec_src[0], vec_src[1], 0] != 0 || img[vec_src[0], vec_src[1], 1] != 0 || img[vec_src[0], vec_src[1], 2] != 0:
+                    xx = blendWidth / 2.0 - (img.shape[0] / 2.0 - x)
+
+                    acc[x, y ,0] += img[vec_src[0], vec_src[1], 0]
+                    acc[x, y ,1] += img[vec_src[0], vec_src[1], 1]
+                    acc[x, y ,2] += img[vec_src[0], vec_src[1], 2]
+
+
     #TODO-BLOCK-END
     # END TODO
 
@@ -99,7 +133,13 @@ def blendImages(ipv, blendWidth, is360=False, A_out=None):
         # BEGIN TODO 9
         # add some code here to update minX, ..., maxY
         #TODO-BLOCK-BEGIN
-        raise Exception("TODO in blend.py not implemented")
+        
+        bounds = imageBoundingBox(i, M)
+        minX = min(minX, bounds[0])
+        minY = min(minY, bounds[1])
+        maxX = max(maxX, bounds[2])
+        maxY = max(maxY, bounds[3])
+
         #TODO-BLOCK-END
         # END TODO
 

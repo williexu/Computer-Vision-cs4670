@@ -41,6 +41,8 @@ def computeHomography(f1, f2, matches, A_out=None):
         #Access elements using square brackets. e.g. A[0,0]
         #TODO-BLOCK-BEGIN
 
+        # A[2 * i] = [a_x, a_y, 1, 0, 0, 0, -b_y * a_x, -a_y * b_y, -b_y]
+        # A[2 * i + 1] = [0, 0, 0, a_x, a_y, 1, -b_y * a_x, -a_y * b_y, -b_y]
         A[2 * i, 0] = a_x
         A[2 * i, 1] = a_y
         A[2 * i, 2] = 1
@@ -52,7 +54,7 @@ def computeHomography(f1, f2, matches, A_out=None):
         A[2 * i + 1, 5] = 1
         A[2 * i + 1, 6] = -b_y * a_x
         A[2 * i + 1, 7] = -a_y * b_y
-        A[2 * i + 1, 8] = -b_y   
+        A[2 * i + 1, 8] = -b_y
 
         #TODO-BLOCK-END
         #END TODO
@@ -80,6 +82,8 @@ def computeHomography(f1, f2, matches, A_out=None):
     H[0] = h[0:3]
     H[1] = h[3:6]
     H[2] = h[6:]
+
+    H /= H[2, 2]
 
     #TODO-BLOCK-END
     #END TODO
@@ -126,8 +130,8 @@ def alignPair(f1, f2, matches, m, nRANSAC, RANSACthresh):
 
     for i in xrange(nRANSAC):
         this_M = np.zeros((3,3))
+        s = len(matches)
         if m == eTranslate:
-            s = len(matches)
             match = matches[random.randrange(s)]
             p1 = f1[match.queryIdx]
             p2 = f2[match.trainIdx]
@@ -147,7 +151,8 @@ def alignPair(f1, f2, matches, m, nRANSAC, RANSACthresh):
         new_inds = getInliers(f1, f2, matches, this_M, RANSACthresh)
         if len(new_inds) > len(inliers_inds):
             inliers_inds = new_inds
-        M = leastSquaresFit(f1, f2, matches, m, inliers_inds)
+
+    M = leastSquaresFit(f1, f2, matches, m, inliers_inds)
 
     #TODO-BLOCK-END
     #END TODO
@@ -190,6 +195,7 @@ def getInliers(f1, f2, matches, M, RANSACthresh):
         f_2 = f2[match.trainIdx].pt
         vec_1 = np.array([f_1[0], f_1[1], 1])
         trans_1 = M.dot(vec_1.T)
+        trans_1 /= trans_1[2]
         dis = (f_2[0] - trans_1[0]) **2 + (f_2[1] - trans_1[1]) **2
 
         if dis <= thres_squared:
