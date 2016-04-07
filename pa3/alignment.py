@@ -121,7 +121,34 @@ def alignPair(f1, f2, matches, m, nRANSAC, RANSACthresh):
     #This function should also call get_inliers and, at the end,
     #least_squares_fit.
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in alignment.py not implemented")
+
+    inliers_inds = []
+
+    for i in xrange(nRANSAC):
+        this_M = np.zeros((3,3))
+        if m == eTranslate:
+            s = len(matches)
+            match = matches[random.randrange(s)]
+            p1 = f1[match.queryIdx]
+            p2 = f2[match.trainIdx]
+
+            this_M[0,0] = 1
+            this_M[1,1] = 1
+            this_M[2,2] = 1
+            this_M[0,2] = p2.pt[0] - p1.pt[0]
+            this_M[1,2] = p2.pt[1] - p1.pt[1]
+            
+        else:
+            list_inds = random.sample(xrange(s), 4)
+            mini_matches = []
+            for x in list_inds:
+                mini_matches.append(matches[x])
+            this_M = computeHomography(f1, f2, mini_matches)
+        new_inds = getInliers(f1, f2, matches, this_M, RANSACthresh)
+        if len(new_inds) > len(inliers_inds):
+            inliers_inds = new_inds
+        M = leastSquaresFit(f1, f2, matches, m, inliers_inds)
+
     #TODO-BLOCK-END
     #END TODO
     return M
