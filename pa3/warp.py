@@ -74,7 +74,7 @@ def computeSphericalWarpMappings(dstShape, f, k1, k2):
 
     x = np.sin(xf) * np.cos(yf)
     y = np.sin(yf)
-    z = np.cos(xf) * np.sin(yf)
+    z = np.cos(xf) * np.cos(yf)
 
     x = x/z
     y = y/z
