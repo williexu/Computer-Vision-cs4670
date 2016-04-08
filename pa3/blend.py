@@ -31,20 +31,20 @@ def imageBoundingBox(img, M):
     #TODO-BLOCK-BEGIN
     
     img_shape = img.shape
-    vec_1 = numpy.array((0, 0, 1))
-    vec_2 = numpy.array((img_shape[0], 0, 1))
-    vec_3 = numpy.array((0, img_shape[1], 1))
-    vec_4 = numpy.array((img_shape[0], img_shape[1], 1))
+    vec_1 = np.array((0, 0, 1))
+    vec_2 = np.array((img_shape[0], 0, 1))
+    vec_3 = np.array((0, img_shape[1], 1))
+    vec_4 = np.array((img_shape[0], img_shape[1], 1))
 
     vec_1trans = M.dot(vec_1)
     vec_2trans = M.dot(vec_2)
     vec_3trans = M.dot(vec_3)
     vec_4trans = M.dot(vec_4)
 
-    minX = min(vec_1trans[0], vec_2trans[0], vec_3trans[0], vec_4trans[0])
-    minY = min(vec_1trans[1], vec_2trans[1], vec_3trans[1], vec_4trans[1])
-    maxX = max(vec_1trans[0], vec_2trans[0], vec_3trans[0], vec_4trans[0])
-    maxY = max(vec_1trans[1], vec_2trans[1], vec_3trans[1], vec_4trans[1])
+    minY = min(vec_1trans[0], vec_2trans[0], vec_3trans[0], vec_4trans[0])
+    minX = min(vec_1trans[1], vec_2trans[1], vec_3trans[1], vec_4trans[1])
+    maxY = max(vec_1trans[0], vec_2trans[0], vec_3trans[0], vec_4trans[0])
+    maxX = max(vec_1trans[1], vec_2trans[1], vec_3trans[1], vec_4trans[1])
 
     #TODO-BLOCK-END
     return int(minX), int(minY), int(maxX), int(maxY)
@@ -68,21 +68,41 @@ def accumulateBlend(img, acc, M, blendWidth):
     
     acc_shape = acc.shape
     img_shape = img.shape
-    for x in xrange(acc_shape[0]):
-        for y in xrange(acc_shape[1]):
-            vec = numpy.array(((float)x, (float)y, 1.0))
+    for y in xrange(acc_shape[0]):
+        for x in xrange(acc_shape[1]):
+            vec = np.array((float(x), float(y), 1.0))
             M_inverse = np.linalg.inv(M)
             vec_inverse = M_inverse.dot(vec)
             vec_inverse /= vec_inverse[2]
-            if !(vec_inverse[0] < 0 || vec_inverse[0] > img_shape[0] || vec_inverse[1] < 0 || vec_inverse[1] > img_shape[1]):
-                vec_src = numpy.array((round(vec_inverse[0]), round(vec_inverse[1]))) #change it
-                if img[vec_src[0], vec_src[1], 0] != 0 || img[vec_src[0], vec_src[1], 1] != 0 || img[vec_src[0], vec_src[1], 2] != 0:
-                    xx = blendWidth / 2.0 - (img.shape[0] / 2.0 - x)
+            if not(vec_inverse[0] < 0 or vec_inverse[0] >= img_shape[1] or vec_inverse[1] < 0 or vec_inverse[1] >= img_shape[0]):
+                lowX = np.floor(vec_inverse[0]) - 1
+                lowY = np.floor(vec_inverse[1]) - 1
+                highX = lowX
+                highY = lowY
+                a = vec_inverse[0] - lowX
+                b = vec_inverse[1] - lowY
+                ul = img[lowY, lowX] # upper left neighbor
+                ur = img[lowY, highX]
+                bl = img[highY, lowX]
+                br = img[highY, highX]
+                pixel = (1 - b) * ((1 - a) * ul + a * ur) + b * ((1 - a) * bl + a * br)
 
-                    acc[x, y ,0] += img[vec_src[0], vec_src[1], 0]
-                    acc[x, y ,1] += img[vec_src[0], vec_src[1], 1]
-                    acc[x, y ,2] += img[vec_src[0], vec_src[1], 2]
+                if np.sum(pixel) != 0:
+                    if vec_inverse[0] < blendWidth:
+                        weight = vec_inverse[0] / blendWidth
+                    elif vec_inverse[0] > img_shape[1] - blendWidth:
+                        weight = (img_shape[1] - vec_inverse[0]) / blendWidth
+                    else:
+                        weight = 1
 
+                    # print "acc:"
+                    # print acc[y, x, 0]
+                    # print "pixel"
+                    # print pixel[0]
+                    acc[y, x, 0] += pixel[0] * weight
+                    acc[y, x, 1] += pixel[1] * weight
+                    acc[y, x, 2] += pixel[2] * weight
+                    acc[y, x, 3] += weight
 
     #TODO-BLOCK-END
     # END TODO
@@ -134,7 +154,7 @@ def blendImages(ipv, blendWidth, is360=False, A_out=None):
         # add some code here to update minX, ..., maxY
         #TODO-BLOCK-BEGIN
         
-        bounds = imageBoundingBox(i, M)
+        bounds = imageBoundingBox(img, M)
         minX = min(minX, bounds[0])
         minY = min(minY, bounds[1])
         maxX = max(maxX, bounds[2])
