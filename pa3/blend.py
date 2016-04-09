@@ -79,11 +79,11 @@ def accumulateBlend(img, acc, M, blendWidth):
             vec = np.array((float(x), float(y), 1.0))
             vec_inverse = M_inverse.dot(vec)
             vec_inverse /= vec_inverse[2]
-            if not(vec_inverse[0] < 0 or vec_inverse[0] >= img_shape[1] or vec_inverse[1] < 0 or vec_inverse[1] >= img_shape[0]):
-                lowX = np.floor(vec_inverse[0]) - 1
-                lowY = np.floor(vec_inverse[1]) - 1
-                highX = lowX
-                highY = lowY
+            if not(vec_inverse[0] < 0 or vec_inverse[0] >= img_shape[1] - 1 or vec_inverse[1] < 0 or vec_inverse[1] >= img_shape[0] - 1):
+                lowX = np.floor(vec_inverse[0])
+                lowY = np.floor(vec_inverse[1])
+                highX = lowX + 1
+                highY = lowY + 1
                 a = vec_inverse[0] - lowX
                 b = vec_inverse[1] - lowY
                 ul = img[lowY, lowX] # upper left neighbor
@@ -215,12 +215,12 @@ def blendImages(ipv, blendWidth, is360=False, A_out=None):
             p = np.array([0.5 * width, 0, 1])
             p = M_trans.dot(p)
             x_final, y_final = p[:2] / p[2]
-    print acc
-    print "accumulateBlend done"
+    # print acc
+    # print "accumulateBlend done"
 
     compImage = normalizeBlend(acc)
-    print compImage
-    print "normalizeBlend done"
+    # print compImage
+    # print "normalizeBlend done"
 
     # Determine the final image width
     outputWidth = (accWidth - width) if is360 else accWidth
