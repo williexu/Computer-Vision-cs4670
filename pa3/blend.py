@@ -32,19 +32,24 @@ def imageBoundingBox(img, M):
     
     img_shape = img.shape
     vec_1 = np.array((0, 0, 1))
-    vec_2 = np.array((img_shape[0], 0, 1))
-    vec_3 = np.array((0, img_shape[1], 1))
-    vec_4 = np.array((img_shape[0], img_shape[1], 1))
+    vec_2 = np.array((img_shape[1] - 1, 0, 1))
+    vec_3 = np.array((0, img_shape[0] - 1, 1))
+    vec_4 = np.array((img_shape[1] - 1, img_shape[0] - 1, 1))
 
     vec_1trans = M.dot(vec_1)
     vec_2trans = M.dot(vec_2)
     vec_3trans = M.dot(vec_3)
     vec_4trans = M.dot(vec_4)
 
-    minY = min(vec_1trans[0], vec_2trans[0], vec_3trans[0], vec_4trans[0])
-    minX = min(vec_1trans[1], vec_2trans[1], vec_3trans[1], vec_4trans[1])
-    maxY = max(vec_1trans[0], vec_2trans[0], vec_3trans[0], vec_4trans[0])
-    maxX = max(vec_1trans[1], vec_2trans[1], vec_3trans[1], vec_4trans[1])
+    vec_1trans /= vec_1trans[2]
+    vec_2trans /= vec_2trans[2]
+    vec_3trans /= vec_3trans[2]
+    vec_4trans /= vec_4trans[2]
+
+    minX = min(vec_1trans[0], vec_2trans[0], vec_3trans[0], vec_4trans[0])
+    minY = min(vec_1trans[1], vec_2trans[1], vec_3trans[1], vec_4trans[1])
+    maxX = max(vec_1trans[0], vec_2trans[0], vec_3trans[0], vec_4trans[0])
+    maxY = max(vec_1trans[1], vec_2trans[1], vec_3trans[1], vec_4trans[1])
 
     #TODO-BLOCK-END
     return int(minX), int(minY), int(maxX), int(maxY)
@@ -68,10 +73,10 @@ def accumulateBlend(img, acc, M, blendWidth):
     
     acc_shape = acc.shape
     img_shape = img.shape
+    M_inverse = np.linalg.inv(M)
     for y in xrange(acc_shape[0]):
         for x in xrange(acc_shape[1]):
             vec = np.array((float(x), float(y), 1.0))
-            M_inverse = np.linalg.inv(M)
             vec_inverse = M_inverse.dot(vec)
             vec_inverse /= vec_inverse[2]
             if not(vec_inverse[0] < 0 or vec_inverse[0] >= img_shape[1] or vec_inverse[1] < 0 or vec_inverse[1] >= img_shape[0]):
@@ -139,9 +144,8 @@ def normalizeBlend(acc):
     for y in xrange(acc_shape[0]):
         for x in xrange(acc_shape[1]):
             if acc[y, x, 3] != 0:
-                img[y, x] = acc[y, x] / acc[y, x, 3]
-            else:
-                img[y, x, 3] = 255
+                img[y, x, :3] = acc[y, x, :3] / acc[y, x, 3]
+            img[y, x, 3] = 255
 
     #TODO-BLOCK-END
     # END TODO
@@ -216,7 +220,7 @@ def blendImages(ipv, blendWidth, is360=False, A_out=None):
 
     compImage = normalizeBlend(acc)
     print compImage
-    print "bormalizeBlend done"
+    print "normalizeBlend done"
 
     # Determine the final image width
     outputWidth = (accWidth - width) if is360 else accWidth
