@@ -88,12 +88,25 @@ def accumulateBlend(img, acc, M, blendWidth):
                 pixel = (1 - b) * ((1 - a) * ul + a * ur) + b * ((1 - a) * bl + a * br)
 
                 if np.sum(pixel) != 0:
+                    weight = 0.0
+                    weightx = 0.0
+                    weighty = 0.0
                     if vec_inverse[0] < blendWidth:
-                        weight = vec_inverse[0] / blendWidth
+                        weightx = vec_inverse[0] / blendWidth
                     elif vec_inverse[0] > img_shape[1] - blendWidth:
-                        weight = (img_shape[1] - vec_inverse[0]) / blendWidth
+                        weightx = (img_shape[1] - vec_inverse[0]) / blendWidth
                     else:
-                        weight = 1
+                        weightx = 1.0
+
+                    if vec_inverse[1] < blendWidth:
+                        weighty = vec_inverse[1] / blendWidth
+                    elif vec_inverse[1] > img_shape[0] - blendWidth:
+                        weighty = (img_shape[0] - vec_inverse[1]) / blendWidth
+                    else:
+                        weighty = 1.0
+
+                    weight = min(weightx, weighty)
+
 
                     # print "acc:"
                     # print acc[y, x, 0]
@@ -119,7 +132,17 @@ def normalizeBlend(acc):
     # BEGIN TODO 11
     # fill in this routine..
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in blend.py not implemented")
+    
+    acc_shape = acc.shape
+    img = np.zeros((acc_shape), dtype=np.uint8)
+
+    for y in xrange(acc_shape[0]):
+        for x in xrange(acc_shape[1]):
+            if acc[y, x, 3] != 0:
+                img[y, x] = acc[y, x] / acc[y, x, 3]
+            else:
+                img[y, x, 3] = 255
+
     #TODO-BLOCK-END
     # END TODO
     return img
@@ -188,8 +211,12 @@ def blendImages(ipv, blendWidth, is360=False, A_out=None):
             p = np.array([0.5 * width, 0, 1])
             p = M_trans.dot(p)
             x_final, y_final = p[:2] / p[2]
+    print acc
+    print "accumulateBlend done"
 
     compImage = normalizeBlend(acc)
+    print compImage
+    print "bormalizeBlend done"
 
     # Determine the final image width
     outputWidth = (accWidth - width) if is360 else accWidth
@@ -204,7 +231,11 @@ def blendImages(ipv, blendWidth, is360=False, A_out=None):
     # Note: warpPerspective does inverse mapping which means A is an affine
     # transform that maps final panorama coordinates to accumulator coordinates
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in blend.py not implemented")
+    
+    if is360:
+        A[1, 0] = float(y_init - y_final) / float(x_final)
+        A[0, 2] = -width / 2
+
     #TODO-BLOCK-END
     # END TODO
 
