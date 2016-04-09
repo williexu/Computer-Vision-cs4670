@@ -79,48 +79,83 @@ def accumulateBlend(img, acc, M, blendWidth):
             vec = np.array((float(x), float(y), 1.0))
             vec_inverse = M_inverse.dot(vec)
             vec_inverse /= vec_inverse[2]
-            if not(vec_inverse[0] < 0 or vec_inverse[0] >= img_shape[1] - 1 or vec_inverse[1] < 0 or vec_inverse[1] >= img_shape[0] - 1):
-                lowX = np.floor(vec_inverse[0])
-                lowY = np.floor(vec_inverse[1])
-                highX = lowX + 1
-                highY = lowY + 1
-                a = vec_inverse[0] - lowX
-                b = vec_inverse[1] - lowY
-                ul = img[lowY, lowX] # upper left neighbor
-                ur = img[lowY, highX]
-                bl = img[highY, lowX]
-                br = img[highY, highX]
-                pixel = (1 - b) * ((1 - a) * ul + a * ur) + b * ((1 - a) * bl + a * br)
+            # if not(vec_inverse[0] < 0 or vec_inverse[0] >= img_shape[1] - 1 or vec_inverse[1] < 0 or vec_inverse[1] >= img_shape[0] - 1):
+            #     lowX = np.floor(vec_inverse[0])
+            #     lowY = np.floor(vec_inverse[1])
+            #     highX = lowX + 1
+            #     highY = lowY + 1
+            #     a = vec_inverse[0] - lowX
+            #     b = vec_inverse[1] - lowY
+            #     ul = img[lowY, lowX] # upper left neighbor
+            #     ur = img[lowY, highX]
+            #     bl = img[highY, lowX]
+            #     br = img[highY, highX]
+            lowX = np.floor(vec_inverse[0])
+            lowY = np.floor(vec_inverse[1])
+            highX = lowX + 1
+            highY = lowY + 1
+        
+            if highX > img_shape[1] - 1:
+                if lowX > img_shape[1] -1:
+                    continue
+                else:
+                    highX = lowX
+            if lowX < 0:
+                if highX < 0:
+                    continue
+                else:
+                    lowX = highX
+            
+            if highY > img_shape[0] - 1:
+                if lowY > img_shape[0] -1:
+                    continue
+                else:
+                    highY = lowY
+            if lowY < 0:
+                if highY < 0:
+                    continue
+                else:
+                    lowY = highY
+            
+            
+            a = vec_inverse[0] - lowX
+            b = vec_inverse[1] - lowY
+            ul = img[lowY, lowX] # upper left neighbor
+            ur = img[lowY, highX]
+            bl = img[highY, lowX]
+            br = img[highY, highX]
 
-                if np.sum(pixel) != 0:
-                    weight = 0.0
-                    weightx = 0.0
-                    weighty = 0.0
-                    if vec_inverse[0] < blendWidth:
-                        weightx = vec_inverse[0] / blendWidth
-                    elif vec_inverse[0] > img_shape[1] - blendWidth:
-                        weightx = (img_shape[1] - vec_inverse[0]) / blendWidth
-                    else:
-                        weightx = 1.0
+            pixel = (1 - b) * ((1 - a) * ul + a * ur) + b * ((1 - a) * bl + a * br)
 
-                    if vec_inverse[1] < blendWidth:
-                        weighty = vec_inverse[1] / blendWidth
-                    elif vec_inverse[1] > img_shape[0] - blendWidth:
-                        weighty = (img_shape[0] - vec_inverse[1]) / blendWidth
-                    else:
-                        weighty = 1.0
+            if np.sum(pixel) != 0:
+                weight = 0.0
+                weightx = 0.0
+                weighty = 0.0
+                if vec_inverse[0] < blendWidth:
+                    weightx = vec_inverse[0] / blendWidth
+                elif vec_inverse[0] > img_shape[1] - blendWidth:
+                    weightx = (img_shape[1] - vec_inverse[0]) / blendWidth
+                else:
+                    weightx = 1.0
 
-                    weight = min(weightx, weighty)
+                if vec_inverse[1] < blendWidth:
+                    weighty = vec_inverse[1] / blendWidth
+                elif vec_inverse[1] > img_shape[0] - blendWidth:
+                    weighty = (img_shape[0] - vec_inverse[1]) / blendWidth
+                else:
+                    weighty = 1.0
+
+                weight = min(weightx, weighty)
 
 
-                    # print "acc:"
-                    # print acc[y, x, 0]
-                    # print "pixel"
-                    # print pixel[0]
-                    acc[y, x, 0] += pixel[0] * weight
-                    acc[y, x, 1] += pixel[1] * weight
-                    acc[y, x, 2] += pixel[2] * weight
-                    acc[y, x, 3] += weight
+                # print "acc:"
+                # print acc[y, x, 0]
+                # print "pixel"
+                # print pixel[0]
+                acc[y, x, 0] += pixel[0] * weight
+                acc[y, x, 1] += pixel[1] * weight
+                acc[y, x, 2] += pixel[2] * weight
+                acc[y, x, 3] += weight
 
     #TODO-BLOCK-END
     # END TODO
