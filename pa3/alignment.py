@@ -27,7 +27,7 @@ def computeHomography(f1, f2, matches, A_out=None):
     # Dimensions of the A matrix in the homogenous linear
     # equation Ah = 0
     num_rows = 2 * num_matches
-    num_cols = 9 
+    num_cols = 9
     A_matrix_shape = (num_rows,num_cols)
     A = np.zeros(A_matrix_shape)
 
@@ -76,9 +76,7 @@ def computeHomography(f1, f2, matches, A_out=None):
     #Fill the homography H with the appropriate elements of the SVD
     #TODO-BLOCK-BEGIN
     
-    m = min(num_rows, num_cols)
-
-    h = Vt[m-1]
+    h = Vt[8]
     H[0] = h[0:3]
     H[1] = h[3:6]
     H[2] = h[6:]
