@@ -73,52 +73,95 @@ def accumulateBlend(img, acc, M, blendWidth):
     
     acc_shape = acc.shape
     img_shape = img.shape
-    minX, minY, maxX, maxY = imageBoundingBox(img, M)
     M_inverse = np.linalg.inv(M)
-    for y in xrange(minY, maxY):
-        for x in xrange(minX, maxX):
-            vec = np.array((float(x), float(y), 1.0))
-            vec_inverse = M_inverse.dot(vec)
-            vec_inverse /= vec_inverse[2]
-            if not(vec_inverse[0] < 0 or vec_inverse[0] >= img_shape[1] - 1 or vec_inverse[1] < 0 or vec_inverse[1] >= img_shape[0] - 1):
-                lowX = np.floor(vec_inverse[0])
-                lowY = np.floor(vec_inverse[1])
-                highX = lowX + 1
-                highY = lowY + 1
-                a = vec_inverse[0] - lowX
-                b = vec_inverse[1] - lowY
-                ul = img[lowY, lowX] # upper left neighbor
-                ur = img[lowY, highX]
-                bl = img[highY, lowX]
-                br = img[highY, highX]
+    minX, minY, maxX, maxY = imageBoundingBox(img, M)
+    # for y in xrange(minY, maxY + 1):
+    #     for x in xrange(minX, maxX + 1):
+    #         vec = np.array((float(x), float(y), 1.0))
+    #         vec_inverse = M_inverse.dot(vec)
+    #         vec_inverse /= vec_inverse[2]
+    #         if not(vec_inverse[0] < 0 or vec_inverse[0] >= img_shape[1] - 1 or vec_inverse[1] < 0 or vec_inverse[1] >= img_shape[0] - 1):
+    #             lowX = np.floor(vec_inverse[0])
+    #             lowY = np.floor(vec_inverse[1])
+    #             highX = lowX + 1
+    #             highY = lowY + 1
+    #             a = vec_inverse[0] - lowX
+    #             b = vec_inverse[1] - lowY
+    #             ul = img[lowY, lowX] # upper left neighbor
+    #             ur = img[lowY, highX]
+    #             bl = img[highY, lowX]
+    #             br = img[highY, highX]
 
-                if np.sum(ul[0:3]) != 0 and np.sum(ur[0:3]) != 0 and np.sum(bl[0:3]) != 0 and np.sum(br[0:3]) != 0:
+    #             if np.sum(ul[0:3]) != 0 and np.sum(ur[0:3]) != 0 and np.sum(bl[0:3]) != 0 and np.sum(br[0:3]) != 0:
 
-                    pixel = (1 - b) * ((1 - a) * ul + a * ur) + b * ((1 - a) * bl + a * br)
+    #                 pixel = (1 - b) * ((1 - a) * ul + a * ur) + b * ((1 - a) * bl + a * br)
 
-                    weight = 0.0
-                    weightx = 0.0
-                    weighty = 0.0
-                    if vec_inverse[0] < blendWidth:
-                        weightx = vec_inverse[0] / blendWidth
-                    elif vec_inverse[0] > img_shape[1] - blendWidth:
-                        weightx = (img_shape[1] - vec_inverse[0]) / blendWidth
-                    else:
-                        weightx = 1.0
+    #                 weight = 0.0
+    #                 weightx = 0.0
+    #                 weighty = 0.0
+    #                 if vec_inverse[0] < blendWidth:
+    #                     weightx = vec_inverse[0] / blendWidth
+    #                 elif vec_inverse[0] > img_shape[1] - blendWidth:
+    #                     weightx = (img_shape[1] - vec_inverse[0]) / blendWidth
+    #                 else:
+    #                     weightx = 1.0
 
-                    if vec_inverse[1] < blendWidth:
-                        weighty = vec_inverse[1] / blendWidth
-                    elif vec_inverse[1] > img_shape[0] - blendWidth:
-                        weighty = (img_shape[0] - vec_inverse[1]) / blendWidth
-                    else:
-                        weighty = 1.0
+    #                 if vec_inverse[1] < blendWidth:
+    #                     weighty = vec_inverse[1] / blendWidth
+    #                 elif vec_inverse[1] > img_shape[0] - blendWidth:
+    #                     weighty = (img_shape[0] - vec_inverse[1]) / blendWidth
+    #                 else:
+    #                     weighty = 1.0
 
-                    weight = min(weightx, weighty)
+    #                 weight = min(weightx, weighty)
 
-                    acc[y, x, 0] += pixel[0] * weight
-                    acc[y, x, 1] += pixel[1] * weight
-                    acc[y, x, 2] += pixel[2] * weight
-                    acc[y, x, 3] += weight
+    #                 acc[y, x, 0] += pixel[0] * weight
+    #                 acc[y, x, 1] += pixel[1] * weight
+    #                 acc[y, x, 2] += pixel[2] * weight
+    #                 acc[y, x, 3] += weight
+
+    
+
+
+    original_x = np.linspace(0, acc_shape[1] - 1, acc_shape[1])
+    original_y = np.linspace(0, acc_shape[0] - 1, acc_shape[0])
+    original_z = np.ones(acc_shape[:2]).astype(np.float32)
+
+    # map_x, map_y = np.meshgrid(trans_x, trans_y)
+    map_x = np.zeros(acc_shape[:2]).astype(np.float32)
+    map_y = np.zeros(acc_shape[:2]).astype(np.float32)
+    # print map_x
+    # print "up map down original"
+    # print original_x
+    map_x[:] = original_x
+    map_y[:, :] = original_y.reshape((acc_shape[0], 1))
+
+    trans_x = map_x * M_inverse[0, 0] + map_y * M_inverse[0, 1] + original_z * M_inverse[0, 2]
+    trans_y = map_x * M_inverse[1, 0] + map_y * M_inverse[1, 1] + original_z * M_inverse[1, 2]
+    trans_z = map_x * M_inverse[2, 0] + map_y * M_inverse[2, 1] + original_z * M_inverse[2, 2]
+    trans_x /= trans_z
+    trans_y /= trans_z
+
+    img_x = np.linspace(0, img_shape[1] - 1, img_shape[1])
+    img_y = np.linspace(0, img_shape[0] - 1, img_shape[0])
+    img_x[0:blendWidth + 1] /= blendWidth
+    img_x[blendWidth + 1:img_shape[1] - blendWidth + 1] = 1
+    img_x[img_shape[1] - blendWidth + 1: img_shape[1]] = (img_shape[1] - img_x[img_shape[1] - blendWidth + 1: img_shape[1]] - 1) / blendWidth
+    img_y[0:blendWidth + 1] /= blendWidth
+    img_y[blendWidth + 1:img_shape[0] - blendWidth + 1] = 1
+    img_y[img_shape[0] - blendWidth + 1: img_shape[1]] = (img_shape[0] - img_x[img_shape[0] - blendWidth + 1: img_shape[0]] - 1) / blendWidth
+    weight_x, weight_y = np.meshgrid(img_x, img_y)
+    weight_x *= (np.ones(img_shape[:2]) - (img.sum(axis=2)==0))
+    weight = np.minimum(weight_x, weight_y)
+
+    temp_img = np.zeros(acc_shape)
+    img_copy = img
+    for i in xrange(3):
+        img_copy[:, :, i] *= weight
+    temp_img[:img_shape[0], :img_shape[1], :3] = img_copy
+    temp_img[:img_shape[0], :img_shape[1], 3] = weight
+
+    acc += cv2.remap(temp_img,trans_x,trans_y,cv2.INTER_LINEAR)
     #TODO-BLOCK-END
     # END TODO
 
