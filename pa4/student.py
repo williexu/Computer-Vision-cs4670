@@ -102,10 +102,6 @@ def pyrdown_impl(image):
     temp = cv2.filter2D(image, -1, K, borderType = cv2.BORDER_REFLECT_101)
     temp = cv2.filter2D(temp, -1, K.T, borderType = cv2.BORDER_REFLECT_101)
     down = temp[::2, ::2, :]
-
-    print np.shape(down)
-    print down
-    print "dfsdjfsdhfsdhfsdhfkshdfkjhsdkjfhsdjhfkjsdhfkjsdhfksjdhfkjsdhfsdhfjdhfsdhfsdhfksjdhf"
     
     return down.astype(np.float32)
 
@@ -172,12 +168,8 @@ def project_impl(K, Rt, points):
             point = points[y, x]
             location = np.ones([4])
             location[:3] = point
-            print location
             location = Rt.dot(location.T)
-            print Rt
-            print location
             location = K.dot(location.T)
-            print location
             location = location / location[2]
             projections[y, x] = location[:2]
 
@@ -230,7 +222,30 @@ def unproject_corners_impl(K, width, height, depth, Rt):
     Output:
         points -- 2 x 2 x 3 array of 3D points
     """
-    raise NotImplementedError()
+    # raise NotImplementedError()
+    corners = np.zeros([2, 2, 3])
+    corners[0, 0] = [0, 0, 1]
+    corners[0, 1] = [width, 0, 1]
+    corners[1, 0] = [0, height, 1]
+    corners[1, 1] = [width, height, 1]
+
+    for i in xrange (2):
+        for j in xrange (2):
+            corners[i, j] = np.linalg.inv(K).dot(corners[i, j])
+    corners *= depth
+
+    R = np.zeros((4,3))
+    t = np.ones((4,1))
+    R[:3] = Rt[:, :3]
+    t[:3, 0] = Rt[:, 3]
+
+    temp = np.ones([2, 2, 4])
+    temp[:, :, :3] = corners
+    for i in xrange (2):
+        for j in xrange (2):
+            corners[i, j] = ((R.T).dot(temp[i, j, np.newaxis].T) - (R.T).dot(t))[:, 0]
+
+    return corners
 
 
 def preprocess_ncc_impl(image, ncc_size):
