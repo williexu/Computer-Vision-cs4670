@@ -295,7 +295,30 @@ def preprocess_ncc_impl(image, ncc_size):
     Output:
         normalized -- heigth x width x (channels * ncc_size**2) array
     """
-    raise NotImplementedError()
+    # raise NotImplementedError()
+
+    img_shape = np.shape(image)
+
+    normalized = np.zeros([img_shape[0], img_shape[1], img_shape[2] * ncc_size **2])
+
+    for y in xrange (img_shape[0]):
+        for x in xrange (img_shape[1]):
+            temp = np.zeros([img_shape[2], ncc_size, ncc_size])
+            low = - (ncc_size / 2)
+            high = ncc_size / 2
+            if not (y + low < 0 or x + low < 0 or y + high >= img_shape[0] or x + high >= img_shape[1]):
+                for k in xrange (img_shape[2]):
+                    # print low, high
+                    # print image[y + low : y + high + 1, x + low : x + high + 1, k]
+                    # print np.shape(image[y + low : y + high + 1, x + low : x + high + 1, k])
+                    temp[k, :, :] = image[y + low : y + high + 1, x + low : x + high + 1, k]
+                    temp[k, :, :] -= np.mean(temp[k, :, :])
+            normalized_vec = np.asarray(temp).reshape(-1)
+            norm = np.linalg.norm(normalized_vec)
+            if norm != 0:
+                normalized[y, x, :] = normalized_vec / norm
+
+    return normalized
 
 
 def compute_ncc_impl(image1, image2):
@@ -310,4 +333,12 @@ def compute_ncc_impl(image1, image2):
         ncc -- height x width normalized cross correlation between image1 and
                image2.
     """
-    raise NotImplementedError()
+    # raise NotImplementedError()
+
+    img_shape = np.shape(image1)
+    ncc = np.zeros((img_shape[0], img_shape[1]))
+    for y in xrange (img_shape[0]):
+        for x in xrange (img_shape[1]):
+            ncc[y, x] = image1[y, x].dot(image2[y, x])
+
+    return ncc
