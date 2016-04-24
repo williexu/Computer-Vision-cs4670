@@ -131,8 +131,10 @@ def pyrup_impl(image):
     """
 
     img_shape = np.shape(image)
-
-    new_img = np.zeros([2 * img_shape[0], 2 * img_shape[1], img_shape[2]])
+    if len(img_shape) == 2:
+        new_img = np.zeros([2 * img_shape[0], 2 * img_shape[1], 1])
+    else:
+        new_img = np.zeros([2 * img_shape[0], 2 * img_shape[1], img_shape[2]])
 
     for y in xrange(img_shape[0]):
         for x in xrange(img_shape[1]):
@@ -150,6 +152,9 @@ def pyrup_impl(image):
 def project_impl(K, Rt, points):
     """
     Project 3D points into a calibrated camera.
+
+    If the point has a depth < 1e-7 from the camera or is located behind the
+    camera, then set the projection to [np.nan, np.nan].
 
     Input:
         K -- camera intrinsics calibration matrix
@@ -170,6 +175,9 @@ def project_impl(K, Rt, points):
             location[:3] = point
             location = Rt.dot(location.T)
             location = K.dot(location.T)
+            if location[2] < 1e-7:
+                projections[y, x] = [np.nan, np.nan]
+                continue
             location = location / location[2]
             projections[y, x] = location[:2]
 
