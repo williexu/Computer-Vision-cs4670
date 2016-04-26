@@ -307,7 +307,7 @@ def preprocess_ncc_impl(image, ncc_size):
 
     img_shape = np.shape(image)
 
-    normalized = np.zeros([img_shape[0], img_shape[1], img_shape[2] * ncc_size **2])
+    # normalized = np.zeros([img_shape[0], img_shape[1], img_shape[2] * ncc_size **2])
 
     # for y in xrange (img_shape[0]):
     #     for x in xrange (img_shape[1]):
@@ -333,14 +333,20 @@ def preprocess_ncc_impl(image, ncc_size):
         for x in xrange (img_shape[1]):
             if not (y + low < 0 or x + low < 0 or y + high >= img_shape[0] or x + high >= img_shape[1]):
                 for k in xrange (img_shape[2]):
-                    temp[y, x, k : k * ncc_size * ncc_size] = np.asarray(image[y + low : y + high + 1, x + low : x + high + 1, k]).reshape(-1)
+                    # print np.asarray(image[y + low : y + high + 1, x + low : x + high + 1, k])
+                    # print np.shape(temp[y, x, k : (k+1) * ncc_size * ncc_size])
+                    temp[y, x, k * ncc_size * ncc_size: (k+1) * ncc_size * ncc_size] = np.asarray(image[y + low : y + high + 1, x + low : x + high + 1, k]).reshape(-1)
     for k in xrange (img_shape[2]):
-        temp[:, :, k : k * ncc_size * ncc_size] -= np.mean(temp[:, :, k : k * ncc_size * ncc_size], axis=2)
+        temp[:, :, k * ncc_size * ncc_size: (k+1) * ncc_size * ncc_size] -= np.mean(temp[:, :, k * ncc_size * ncc_size: k * ncc_size * ncc_size], axis=2)[:,:,np.newaxis]
+    norm = np.linalg.norm(temp, axis=2)[:,:, np.newaxis]
+    for y in xrange (img_shape[0]):
+        for x in xrange (img_shape[1]):
+            print norm
+            if norm[y, x, 0] != 0:
+                temp[y, x, :] = temp[y, x, :] / norm[y, x, 0]
+            # normalized[norm == 0] = temp / norm
 
-    norm = np.linalg.norm(temp, axis=2)
-    normalized[norm == 0] = temp / norm
-
-    return normalized
+    return temp
 
 
 def compute_ncc_impl(image1, image2):
